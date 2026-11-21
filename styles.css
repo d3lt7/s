@@ -76,3 +76,4 @@ button.btn{border:0;cursor:pointer;justify-self:start}#st{min-height:1.5em;color
 .open #menu{display:flex;position:absolute;top:100%;left:0;right:0;flex-direction:column;gap:6px;background:var(--bg);padding:10px 20px 20px}.open #menu a{padding:10px 0;font-size:17px}
 .hero{grid-template-columns:1fr;min-height:0}.sv,.vt,.st,.cg,.fg,.r2{grid-template-columns:1fr}.sv .c,.sv .big{grid-column:auto}.st li{min-height:0}.bb{right:0}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.bar{clip-path:none}}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.lgpd{margin:0;font-size:13px;color:var(--mu)}button.btn:disabled{opacity:.6;cursor:progress}

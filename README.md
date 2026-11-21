@@ -1,38 +1,46 @@
 # RC DEV: site institucional
 
-Site estático (HTML, CSS e JavaScript puros), sem etapa de build.
+Site estático (HTML, CSS e JavaScript) com uma função serverless na Vercel que grava os contatos no **Neon** (Postgres) e envia um **e-mail automático escrito por você** para quem preencheu o formulário, via **Resend**.
 
 ```
-index.html   estrutura e conteúdo
-styles.css   estilos (tema claro e escuro)
-script.js    interações e CONFIG de contato
-assets/      mascote, logo, favicon e imagem de compartilhamento
-vercel.json  cabeçalhos de segurança e cache
+index.html  styles.css  script.js   site
+assets/                              mascote, logo, favicon, imagem de compartilhamento
+api/contact.js                       POST /api/contact (Vercel Function)
+lib/                                 validação, limite de envios, banco e envio de e-mail
+emails/autoresposta.js               TEXTO DO E-MAIL (edite aqui)
+db/schema.sql                        tabela do Neon
+tests/                               npm test
 ```
 
-## Antes de publicar
-1. Abra `script.js` e preencha `CONFIG` no topo (e-mail, WhatsApp com DDD e Instagram). Campos vazios somem do footer e o formulário fica em modo demonstração.
-2. Com o domínio definido, troque em `index.html` o `og:image` por uma URL absoluta, por exemplo `https://seudominio.com.br/assets/og.png`. Redes sociais exigem URL completa.
-3. Revise os textos de serviços, stack e perguntas frequentes.
+## Como funciona
+Formulário > `/api/contact` > valida os campos > confere limite de envios (5 por hora por IP, 2 por dia por e-mail) > grava no Neon > envia a autoresposta ao visitante (e um aviso para você, se `NOTIFY_EMAIL` existir). Se o e-mail falhar, o contato continua salvo e o erro fica na coluna `autoreply_error`. Bots que preenchem o campo escondido são ignorados.
+
+## Configuração (uma vez)
+1. **Neon:** crie um projeto em neon.com, abra o **SQL Editor**, cole o conteúdo de `db/schema.sql` e rode. Em **Connect**, copie a connection string (pooled) para `DATABASE_URL`.
+2. **Resend:** crie conta em resend.com, adicione o seu domínio em **Domains** e crie os registros DNS que ele pedir (SPF e DKIM). Depois de verificado, crie uma **API Key**. Sem domínio verificado só é possível testar enviando para o e-mail da sua própria conta, usando `onboarding@resend.dev` como remetente.
+3. **Variáveis na Vercel:** em Project Settings > Environment Variables, crie as variáveis de `.env.example` (`DATABASE_URL`, `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, e opcionais `NOTIFY_EMAIL` e `IP_SALT`) e faça um novo deploy.
+4. **Seu texto:** edite `emails/autoresposta.js` com o assunto e a mensagem que você quer enviar.
+5. `script.js`: preencha `CONFIG` com e-mail, WhatsApp e Instagram (footer). No `index.html`, troque o `og:image` por uma URL absoluta.
 
 ## Testar localmente
 ```bash
-npx serve .
+npm install
+npm test                      # testes da API
+npm i -g vercel && vercel link
+vercel env pull .env.local    # baixa as variáveis
+vercel dev                    # site + /api/contact em http://localhost:3000
 ```
-Abra o endereço mostrado no terminal.
+`npx serve` não executa a pasta `api/`; use `vercel dev`.
 
-## Deploy na Vercel
-**Pelo GitHub (recomendado)**
-1. Crie um repositório e envie esta pasta (`git init`, `git add .`, `git commit`, `git push`).
-2. Em vercel.com/new, importe o repositório.
-3. Framework Preset: **Other**. Deixe Build Command e Output Directory vazios. Clique em **Deploy**.
-
-**Pelo terminal**
-```bash
-npm i -g vercel
-cd rcdev-site
-vercel          # preview
-vercel --prod   # produção
+## Ver os contatos
+No SQL Editor do Neon:
+```sql
+SELECT id, created_at, name, email, project_type, message, autoreply_sent_at, autoreply_error
+FROM contacts ORDER BY created_at DESC;
 ```
 
-Para usar um domínio próprio: Project Settings > Domains.
+## Deploy
+Envie a pasta para o GitHub e importe em vercel.com/new (preset **Other**, sem build command), ou rode `vercel --prod`.
+
+## Privacidade (LGPD)
+O site guarda nome, e-mail e mensagem, e apenas o hash do IP. Publique uma política de privacidade e defina por quanto tempo vai manter esses dados.
